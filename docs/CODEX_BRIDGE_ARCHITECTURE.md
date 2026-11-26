@@ -131,7 +131,7 @@ Do not assume a custom MCP connection is available on every ChatGPT plan. Verify
 
 ## 9. Acceptance gates
 
-1. Inspect the real SPARK platform Codex implementation and record its transport and permissions. **Source inspection completed for the uploaded SPARK ONE V1.0.2 package; see Section 10.**
+1. Inspect the real SPARK platform Codex implementation and record its transport and permissions.
 2. Inspect the actual FreeLAMP installation/configuration and identify supported local control surfaces.
 3. Confirm no SPARK data or source is copied into the HORUS repository.
 4. Build the adapter as a separate local companion, reusing the existing Codex runtime/sign-in where safe.
@@ -162,7 +162,25 @@ Verification performed against the extracted uploaded archive:
 
 Key integration conclusion: HORUS should not connect as a second client to SPARK's existing QProcess/session without a deliberate supported interface. Prefer a separate narrow local adapter that starts its own bounded Codex App Server process, reuses the user's installed CLI/sign-in without copying credentials, and has an explicit project-root and permission allowlist. Do not add an external client to SPARK's current thread/session by sharing its thread ID alone.
 
-## 11. Current evidence state
+## 11. HORUS Autonomous Agent V1.2 — implementation update
+
+A runnable, standard-library-only supervised worker package was built separately from SPARK:
+- Durable SQLite task queue with queued/running/pending-approval/completed/failed/cancelled states.
+- Foreground worker loop with start/stop lifecycle and restart recovery for interrupted tasks.
+- CLI for submit, serve, status, list, approve, cancel, human takeover, and resume.
+- Explicit trusted-handler registry; proposed dynamic tools remain non-executable.
+- Approval gate for sensitive, external-write, and destructive risk classes.
+- Human takeover pause, bounded read-only workspace listing, and hash-chained audit records.
+- No paid API, network listener, arbitrary shell, or arbitrary code execution.
+
+Verification:
+- V1.1 core tests plus V1.2 worker tests: 17 passed.
+- CLI smoke test: task submitted, processed to completed, returned expected result, and audit integrity verified.
+- This proves the local reference worker package in this execution environment. It does not prove deployment on the user's Windows PC or integration with HORUS MEMORY, Codex App Server, FreeLAMP, or ChatGPT connectors.
+
+Package artifact: `HORUS_AUTONOMOUS_AGENT_V1.2.zip` (delivered in the current conversation).
+
+## 12. Current evidence state
 
 | Capability | State |
 |---|---|
@@ -170,15 +188,16 @@ Key integration conclusion: HORUS should not connect as a second client to SPARK
 | Codex transport and read-only policy | Source-verified; live Windows behavior not tested |
 | SPARK forwards recent-order and approved-memory context to Codex | Source-verified; includes potentially identifying customer fields |
 | FreeLAMP is available to the user | User-confirmed; not present or configured in uploaded package |
-| Official App Server / SDK integration approach | Documented by OpenAI |
-| HORUS orchestration and evidence skills | Present in private HORUS plugin v1.1.0 |
-| HORUS MCP source and CI tests | Present; CI-tested |
+| HORUS V1.1 autonomy core | Implemented and unit-tested as isolated reference package |
+| HORUS V1.2 persistent worker and CLI | Implemented; 17 tests and CLI smoke test passed in this environment |
+| HORUS V1.2 deployed on user's Windows PC | Not yet verified |
+| HORUS MEMORY / VIRTUAL OFFICE integration | Not implemented |
 | HORUS Codex adapter | Not implemented |
 | FreeLAMP connector/runner | Not implemented or verified |
 | SPARK-to-HORUS bridge | Not connected or verified |
 | Codex callable from this ChatGPT conversation | Not established |
 
-## 12. Non-goals
+## 13. Non-goals
 
 - Do not redesign or rebuild SPARK's Codex integration.
 - Do not merge SPARK and HORUS repositories or memory stores.
