@@ -1,32 +1,51 @@
-# HORUS MCP Tools — Cloudflare deployment
+# HORUS MCP Worker
 
-Cloudflare Workers + D1 port of the Python reference service. Uses only native Worker APIs and the D1 binding.
+Cloudflare Worker endpoint for the HORUS capability, task, and evidence tools.
 
-## Free-plan target
-- Workers Free: 100,000 requests/day and 10 ms CPU per request.
-- D1 Free: 5 million rows read/day, 100,000 rows written/day, 5 GB total storage, up to 10 databases.
-- Exceeding free daily limits causes requests/queries to fail until reset; this project must not upgrade itself or switch to paid billing.
+## Runtime
 
-See official pricing: https://developers.cloudflare.com/workers/platform/pricing/
+- Worker: `horus-mcp-tools`
+- MCP endpoint: `https://horus-mcp-tools.zeerocoold0007.workers.dev/mcp`
+- Health endpoint: `https://horus-mcp-tools.zeerocoold0007.workers.dev/health`
+- Storage: Cloudflare D1 binding `DB`, database `horus-memory`
+- Authentication: `Authorization: Bearer <HORUS_API_TOKEN>`
+- MCP protocol versions: `2025-03-26` and `2025-11-25`
+- Tools: capability upsert/list, task upsert/get, evidence append/list
 
-## Deploy (manual account authorization required)
-1. Create or sign in to a Cloudflare account and open Workers & Pages.
-2. In this folder, install Wrangler locally: `npm install --save-dev wrangler`.
-3. Authenticate with `npx wrangler login`.
-4. Create the D1 database: `npx wrangler d1 create horus-memory`.
-5. Copy the returned database ID into `wrangler.toml` (replace the placeholder).
-6. Apply schema: `npx wrangler d1 migrations apply horus-memory --remote`.
-7. Set a strong secret: `npx wrangler secret put HORUS_API_TOKEN`.
-8. Deploy: `npx wrangler deploy`.
-9. Test `https://<worker>.<account>.workers.dev/health`, then use `/mcp` with a Bearer token and Streamable HTTP POST.
+## Cloudflare configuration
 
-No payment method or paid plan should be enabled for this deployment. If the dashboard asks to upgrade or add paid billing, stop and do not proceed.
+Set `HORUS_API_TOKEN` as a Worker Secret. Never commit it to Git.
+Optionally set `ALLOWED_ORIGINS` as a comma-separated allowlist for browser-based clients. Requests without an Origin header are allowed for server-to-server MCP clients; requests with an Origin must match the allowlist.
 
-## ChatGPT connection
-Deployment alone does not connect tools to ChatGPT. A compatible MCP app connection must be configured with the deployed HTTPS endpoint and bearer authentication. The existing HORUS skills plugin is separate from this server connection; do not claim the tools are live until they appear in chat and a tool call succeeds.
+The D1 tables were initially created through the Cloudflare D1 Console. The idempotent migration in `migrations/0001_init.sql` keeps the schema reproducible for fresh deployments. It does not need to be manually re-run against the existing database.
 
-## Security and limits
-- Store `HORUS_API_TOKEN` only as a Worker secret; never commit it.
-- D1 binding is persistent storage.
-- No shell execution, filesystem access, arbitrary fetch, GitHub write, or autonomous background execution is exposed.
-- Free-tier quota exhaustion should fail closed; never upgrade automatically.
+## Local checks
+
+```sh
+npm install
+npm run check
+npm test
+```
+
+## Manual protocol smoke test
+
+Set the secret in your local shell without placing it in source control:
+
+```sh
+export HORUS_API_TOKEN='your-secret'
+curl -i https://horus-mcp-tools.zeerocoold0007.workers.dev/mcp \
+  -H "Authorization: Bearer $HORUS_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"smoke-test","version":"1.0"}}}'
+```
+
+Then call `tools/list` using a separate POST with the same headers and body `{"jsonrpc":"2.0","id":2,"method":"tools/list"}`.
+
+## Security and scope
+
+This server only records and retrieves capability assessments, task states, and evidence. It does not execute shell commands, access arbitrary files, perform arbitrary network requests, or write to GitHub. A stored assessment is not proof that a capability is live or independently verified.
+
+## Free-plan policy
+
+The design targets Cloudflare Workers Free and D1 Free. Do not enable paid billing or upgrade automatically. If a free quota is exhausted, requests may fail until reset; stop and reassess rather than enabling a paid plan.
