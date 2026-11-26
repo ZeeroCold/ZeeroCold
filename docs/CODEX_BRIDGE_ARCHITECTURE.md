@@ -233,3 +233,19 @@ Local verification:
 - These checks ran in the development container. The live Codex App Server exchange and Windows machine execution still require local verification.
 
 Supported patch scope is intentionally limited to UTF-8 text file creation/modification. Deletion, rename, binary patches, absolute/traversal paths, symlinks, duplicate targets, and context mismatches are rejected. All patch sections are validated before the first write.
+
+
+## 13. V1.4 implementation checkpoint — Sentinel, Memory MCP client, FreeLAMP probe
+
+Added source modules:
+- `agent/sentinel.py`: observes worker-running and audit-integrity state; emits health events and alerts only. No process termination or automatic restart.
+- `agent/memory_mcp.py`: typed JSON-RPC client for the existing HORUS MCP task/evidence tools. Requires a configured HTTPS endpoint and bearer token at runtime; no credentials are stored in source.
+- `agent/freelamp_probe.py`: read-only discovery of common local PHP-stack folders, PATH commands, and matching Windows services. It does not start or stop services.
+
+The Windows distributable V1.4 includes CLI checks for Sentinel, FreeLAMP discovery, and Memory MCP connectivity. Build verification: 36 unit tests passed. CLI smoke test: FreeLAMP probe returned structured results; Memory MCP correctly reported disconnected because no endpoint/token were configured in the build environment.
+
+Important limitations:
+- Sentinel is currently an observe-and-alert component, not an autonomous recovery supervisor.
+- The Memory MCP client is implemented but no live MCP deployment/authentication was available to verify.
+- FreeLAMP was not found in common paths in the build container; this is not evidence about the user's Windows installation.
+- No Windows device operation or SPARK source modification was performed by this build.
