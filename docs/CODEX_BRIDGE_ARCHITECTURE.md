@@ -1,6 +1,6 @@
 # HORUS ↔ Codex Integration Architecture
 
-**Status:** Architecture proposal — not implemented or connected  
+**Status:** Partial implementation — read-only Codex App Server bridge source committed; live Windows connection not yet verified  
 **Date:** 2026-11-26  
 **Repository boundary:** HORUS only. SPARK remains an independent project.
 
