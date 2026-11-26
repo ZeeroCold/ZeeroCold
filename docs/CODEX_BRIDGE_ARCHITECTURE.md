@@ -10,6 +10,8 @@ HORUS should reuse the user's already-established Codex installation and authent
 
 Codex is the engineering execution runtime. HORUS remains the orchestration, context, evidence, policy, and completion layer.
 
+FreeLAMP is included as a separate local PHP/MySQL application runtime and test environment. It is not a substitute for Codex and is not assumed to expose an API or MCP endpoint.
+
 ## 2. Official integration surface
 
 Use **Codex App Server** when Codex is embedded as a persistent agent inside an application. It exposes JSON-RPC lifecycle operations for initialization, threads, turns, streamed events, approvals, and interruption. The default transport is stdio (JSONL). The documented WebSocket listener is experimental/unsupported for production; do not expose it directly to the public internet.
@@ -36,11 +38,48 @@ Existing Codex App Server in SPARK platform
         |
         v
 Selected workspace / explicitly authorized project directory
+        |
+        | application files in designated local workspace
+        v
+FreeLAMP Runtime (PHP + web server + MySQL, as installed/configured)
+        |
+        | localhost HTTP/browser tests and runtime diagnostics
+        v
+HORUS Evidence Ledger + Completion Gate
 ```
 
-The adapter is a narrow job broker, not a generic remote shell. It must not grant HORUS unrestricted access to the workshop PC or to every SPARK project.
+Logical responsibilities:
+- **HORUS:** orchestration, task policy, context, approvals, evidence collection, and completion decision.
+- **Codex Adapter:** narrow broker between HORUS and the existing Codex runtime.
+- **Codex:** code inspection, implementation, and bounded engineering execution.
+- **FreeLAMP connector/runner:** starts or inspects only the authorized local web/database services and gathers runtime test results.
+- **Browser/HTTP test harness:** validates the application through localhost routes; it does not grant arbitrary network access.
 
-## 4. Reuse contract
+The adapter and FreeLAMP connector are separate logical components. HORUS must not gain a generic shell or unrestricted local-machine interface by combining them.
+
+## 4. FreeLAMP runtime contract (proposed, not yet inspected)
+
+Before implementation, inspect the actual FreeLAMP installation and establish:
+- product/distribution and version;
+- web server and PHP versions/modules;
+- MySQL/MariaDB version and service management method;
+- configured document roots and virtual hosts;
+- ports and localhost binding behavior;
+- project-specific database provisioning and test-data isolation;
+- logs, health checks, startup/shutdown behavior, and failure recovery.
+
+Rules:
+- Do not assume FreeLAMP exposes a stable API, MCP server, CLI contract, or remote control endpoint until verified.
+- Bind development services to localhost by default; do not expose them publicly.
+- Restrict document roots to explicitly selected project workspaces.
+- Do not auto-start services at boot or change global machine settings without separate authorization.
+- Do not execute arbitrary commands or accept arbitrary paths from HORUS.
+- Keep credentials out of source control, prompts, test output, and evidence records. Use local secret/config stores and redact logs.
+- Use isolated test databases and non-production data. Never run destructive migrations against a production database as part of routine tests.
+
+Intended workflow: Codex edits code in an approved workspace; FreeLAMP serves that application locally; browser/HTTP tests exercise it; HORUS records the exact test evidence and evaluates the completion gate.
+
+## 5. Reuse contract
 
 Before implementation, discover the actual Codex integration already present in the workshop platform:
 - executable/launch method and version;
@@ -56,7 +95,7 @@ Reuse the existing process/session only if its owner and lifecycle can safely su
 
 Do not assume the current SPARK implementation uses App Server merely because it has Codex functionality. Inspect its source before choosing the adapter.
 
-## 5. Adapter API (proposed, not yet implemented)
+## 6. Adapter API (proposed, not yet implemented)
 
 Expose only typed operations:
 - `codex_status`: runtime/version/auth readiness (never return tokens).
@@ -65,9 +104,15 @@ Expose only typed operations:
 - `codex_job_interrupt`: interrupt a running task.
 - `codex_job_result`: return summary, changed-file list, test evidence, and unresolved blockers.
 
+FreeLAMP operations, if supported by the inspected installation, should be separately typed and narrowly scoped, for example:
+- `runtime_status`: report configured local service health and versions.
+- `project_serve`: serve only an approved project root using an approved local host/port profile.
+- `project_test`: run a predefined HTTP/browser test suite against the local project.
+- `runtime_logs`: return bounded, redacted diagnostics.
+
 No arbitrary shell command, arbitrary path, unrestricted filesystem, or unrestricted network tool is exposed.
 
-## 6. Security and permission profiles
+## 7. Security and permission profiles
 
 - **Inspect:** read-only project inspection and diagnostics.
 - **Propose:** prepare patches/diffs without applying them.
@@ -76,40 +121,49 @@ No arbitrary shell command, arbitrary path, unrestricted filesystem, or unrestri
 
 Fail closed if the project root, task scope, user identity, sandbox, or permission mode is missing or ambiguous. Keep tokens in the existing secure credential store. Never put secrets in GitHub, logs, prompts, or HORUS evidence records.
 
-## 7. ChatGPT connectivity is a separate gate
+Local runtime authority is separately bounded: inspect service status; start/stop only explicitly approved development services; serve only approved project roots; use isolated test databases; never expose local services publicly by default.
+
+## 8. ChatGPT connectivity is a separate gate
 
 A local Codex integration inside SPARK does not automatically make Codex callable from this ChatGPT conversation. A callable path requires a supported connected tool/connector or an authenticated, reachable service that the current ChatGPT account and client can actually connect to.
 
 Do not assume a custom MCP connection is available on every ChatGPT plan. Verify current plan and client support before depending on it. Until then, the GitHub connector and installed HORUS skills remain the tools callable in this chat; the Codex bridge remains an external integration target.
 
-## 8. Acceptance gates
+## 9. Acceptance gates
 
 1. Inspect the real SPARK platform Codex implementation and record its transport and permissions.
-2. Confirm no SPARK data or source is copied into the HORUS repository.
-3. Build the adapter as a separate local companion, reusing the existing Codex runtime/sign-in where safe.
-4. Unit-test JSON-RPC lifecycle, malformed responses, timeouts, cancellation, and permission enforcement.
-5. Verify a harmless read-only job against a dedicated test workspace.
-6. Verify a proposed diff without applying it.
-7. Verify write access is blocked unless the explicit apply-approved gate is satisfied.
-8. Verify logs redact secrets and record task ID, project ID, permission profile, timestamps, changed files, and test results.
-9. Separately verify whether ChatGPT can call the adapter in the user's current plan/client.
+2. Inspect the actual FreeLAMP installation/configuration and identify supported local control surfaces.
+3. Confirm no SPARK data or source is copied into the HORUS repository.
+4. Build the adapter as a separate local companion, reusing the existing Codex runtime/sign-in where safe.
+5. Build a separate least-privilege FreeLAMP runner/connector only for verified interfaces.
+6. Unit-test JSON-RPC lifecycle, malformed responses, timeouts, cancellation, and permission enforcement.
+7. Verify a harmless read-only job against a dedicated test workspace.
+8. Verify a proposed diff without applying it.
+9. Verify write access is blocked unless the explicit apply-approved gate is satisfied.
+10. Verify a local PHP application can be served and tested using an isolated test database.
+11. Verify local services remain private to localhost and unauthorized paths/commands are rejected.
+12. Verify logs redact secrets and record task ID, project ID, permission profile, timestamps, changed files, and test results.
+13. Separately verify whether ChatGPT can call the adapter in the user's current plan/client.
 
-## 9. Current evidence state
+## 10. Current evidence state
 
 | Capability | State |
 |---|---|
 | Codex exists in the user's SPARK workshop platform | User-confirmed; implementation not inspected here |
+| FreeLAMP is available to the user | User-confirmed; installation/configuration not inspected here |
 | Official App Server / SDK integration approach | Documented by OpenAI |
 | HORUS orchestration and evidence skills | Present in private HORUS plugin v1.1.0 |
 | HORUS MCP source and CI tests | Present; CI-tested |
 | HORUS Codex adapter | Not implemented |
+| FreeLAMP connector/runner | Not implemented or verified |
 | SPARK-to-HORUS bridge | Not connected or verified |
 | Codex callable from this ChatGPT conversation | Not established |
 
-## 10. Non-goals
+## 11. Non-goals
 
 - Do not redesign or rebuild SPARK's Codex integration.
 - Do not merge SPARK and HORUS repositories or memory stores.
 - Do not install another local model or add paid API usage.
 - Do not expose Codex App Server's experimental WebSocket listener publicly.
+- Do not expose FreeLAMP services publicly by default.
 - Do not claim deployment, connection, or successful execution until tested end-to-end.
