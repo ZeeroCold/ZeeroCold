@@ -11,9 +11,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Unit tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python reference tests
         working-directory: mcp-tools
         run: python -m unittest discover -s tests -v
-      - name: Compile
+      - name: Python compile
         working-directory: mcp-tools
         run: python -m py_compile server.py tests/test_server.py
+      - name: Cloudflare Worker syntax
+        run: node --check mcp-tools/cloudflare/src/index.js
+      - name: Validate D1 migration SQL
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          sql = Path("mcp-tools/cloudflare/migrations/0001_initial.sql").read_text()
+          db = sqlite3.connect(":memory:")
+          db.executescript(sql)
+          tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          assert {"capabilities", "tasks", "evidence"} <= tables
+          print("D1 migration SQL valid; all expected tables created.")
+          PY
