@@ -10,5 +10,5 @@ HORUS_SERVICE_VERSION = "0.2.0"
 [[d1_databases]]
 binding = "DB"
 database_name = "horus-memory"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "2bc3b465-acf5-4db3-9ff7-ed6c96bd8956"
 migrations_dir = "migrations"
