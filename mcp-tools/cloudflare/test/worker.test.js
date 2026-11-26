@@ -46,3 +46,19 @@ test("notifications return 202 without a JSON body",async()=>{
  const r=await worker.fetch(req("POST",{jsonrpc:"2.0",method:"notifications/initialized"}),env());
  assert.equal(r.status,202);assert.equal(await r.text(),"");
 });
+
+test("modern 2026 protocol accepts request metadata headers",async()=>{
+ const e=env();const body={jsonrpc:"2.0",id:10,method:"tools/list",params:{_meta:{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{name:"test",version:"1"},"io.modelcontextprotocol/clientCapabilities":{}}}};
+ const r=await worker.fetch(req("POST",body,{"mcp-protocol-version":"2026-07-28","mcp-method":"tools/list"}),e);
+ const j=await r.json();assert.equal(r.status,200);assert.equal(j.result.tools.length,6);
+});
+test("modern 2026 protocol rejects missing method metadata header",async()=>{
+ const body={jsonrpc:"2.0",id:11,method:"tools/list",params:{_meta:{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}};
+ const r=await worker.fetch(req("POST",body,{"mcp-protocol-version":"2026-07-28"}),env());
+ const j=await r.json();assert.equal(r.status,400);assert.equal(j.error.code,-32020);
+});
+test("modern tools/call validates Mcp-Name against request body",async()=>{
+ const body={jsonrpc:"2.0",id:12,method:"tools/call",params:{name:"horus_capability_list",arguments:{},_meta:{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}};
+ const r=await worker.fetch(req("POST",body,{"mcp-protocol-version":"2026-07-28","mcp-method":"tools/call","mcp-name":"wrong_tool"}),env());
+ const j=await r.json();assert.equal(r.status,400);assert.equal(j.error.code,-32020);
+});
