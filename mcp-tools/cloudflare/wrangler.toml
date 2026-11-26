@@ -5,7 +5,7 @@ workers_dev = true
 preview_urls = false
 
 [vars]
-HORUS_SERVICE_VERSION = "0.2.0"
+HORUS_SERVICE_VERSION = "0.2.1"
 
 [[d1_databases]]
 binding = "DB"
