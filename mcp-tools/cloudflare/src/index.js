@@ -13,7 +13,7 @@ const TOOLS = [
 const CORS = {
  "access-control-allow-origin":"*",
  "access-control-allow-methods":"POST, OPTIONS",
- "access-control-allow-headers":"authorization, content-type, accept, mcp-protocol-version, mcp-session-id",
+ "access-control-allow-headers":"authorization, content-type, accept, mcp-protocol-version, mcp-method, mcp-name, mcp-session-id",
  "access-control-max-age":"86400",
  "vary":"Origin"
 };
