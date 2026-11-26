@@ -205,3 +205,14 @@ Package artifact: `HORUS_AUTONOMOUS_AGENT_V1.2.zip` (delivered in the current co
 - Do not expose Codex App Server's experimental WebSocket listener publicly.
 - Do not expose FreeLAMP services publicly by default.
 - Do not claim deployment, connection, or successful execution until tested end-to-end.
+
+
+## 12. V1.3.2 — Codex propose / review / apply gate
+
+A strict unified-diff application layer is being added as a separate HORUS component. Codex remains in read-only mode and is asked to return a unified diff. HORUS validates the patch before storing a proposal. No workspace file changes during proposal generation.
+
+The apply operation is a separate explicit user command and is not triggered by Codex. The applier supports text-file creation and modification only; it rejects deletion, rename, binary patches, absolute paths, traversal, symlinks, duplicate targets, oversized content, and context mismatches. Existing files are backed up under the HORUS data directory. Each successful application is written to the audit log with proposal ID and changed-file hashes.
+
+Local tests currently cover successful modification with backup, file creation, traversal rejection, deletion rejection, context mismatch, and duplicate target rejection. These tests do not establish a live Codex App Server session on the user's Windows device.
+
+This design intentionally does not grant Codex unrestricted write access. It provides a reviewable diff and a separate approval-controlled application step.
