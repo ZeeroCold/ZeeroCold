@@ -1,4 +1,6 @@
-const SUPPORTED_PROTOCOLS = ["2025-03-26", "2025-11-25"];
+const LEGACY_PROTOCOLS = ["2025-03-26", "2025-11-25"];
+const MODERN_PROTOCOL = "2026-07-28";
+const SUPPORTED_PROTOCOLS = [...LEGACY_PROTOCOLS, MODERN_PROTOCOL];
 const SERVER = { name: "horus-capability-and-evidence", version: "0.2.1" };
 const TOOLS = [
  {name:"horus_capability_upsert",description:"Record or update a capability assessment. Recording is not proof of live availability.",inputSchema:{type:"object",properties:{capability_id:{type:"string",minLength:1,maxLength:120},name:{type:"string",minLength:1,maxLength:200},status:{type:"string",enum:["available","available_with_setup","external_required","not_controllable","unverified"]},evidence:{type:"string",maxLength:4000},tested_at:{type:"string",maxLength:80}},required:["capability_id","name","status"],additionalProperties:false}},
@@ -83,7 +85,7 @@ async function rpc(env,req){
 export default {
  async fetch(request,env){
   const url=new URL(request.url);
-  if(request.method==="GET"&&url.pathname==="/health")return json({ok:true,service:SERVER.name,version:SERVER.version});
+  if(request.method==="GET"&&url.pathname==="/health")return json({ok:true,service:SERVER.name,version:SERVER.version,protocols:SUPPORTED_PROTOCOLS});
   if(url.pathname!=="/mcp")return json({error:"not_found"},404);
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
   if(request.method==="GET"||request.method==="DELETE")return new Response(null,{status:405,headers:{...CORS,allow:"POST, OPTIONS"}});
@@ -100,8 +102,24 @@ export default {
   if(!accept.includes("application/json")&&!accept.includes("text/event-stream"))return json({error:"accept_must_include_application_json_or_text_event_stream"},406);
   let body;try{body=await request.json();}catch{return json({error:"invalid_json"},400);}
   if(Array.isArray(body))return json({error:"batch_requests_not_supported"},400);
+  const versionHeader=request.headers.get("mcp-protocol-version");
+  const methodHeader=request.headers.get("mcp-method");
+  const nameHeader=request.headers.get("mcp-name");
+  const bodyVersion=body?.params?._meta?.["io.modelcontextprotocol/protocolVersion"];
+  const modern=versionHeader===MODERN_PROTOCOL||bodyVersion===MODERN_PROTOCOL;
+  if(modern){
+   const err=(message)=>json({jsonrpc:"2.0",id:body?.id??null,error:{code:-32020,message}},400);
+   if(versionHeader!==MODERN_PROTOCOL||bodyVersion!==MODERN_PROTOCOL)return err("MCP-Protocol-Version header and request metadata must both be 2026-07-28");
+   if(!methodHeader||methodHeader!==body?.method)return err("Mcp-Method header is missing or does not match request method");
+   const needsName=body.method==="tools/call"||body.method==="resources/read"||body.method==="prompts/get";
+   if(needsName&&(!nameHeader||nameHeader!==body?.params?.name&&nameHeader!==body?.params?.uri))return err("Mcp-Name header is missing or does not match request name");
+  } else if(versionHeader&&versionHeader!== "2025-03-26" && versionHeader!=="2025-11-25"){
+   return json({jsonrpc:"2.0",id:body?.id??null,error:{code:-32602,message:"Unsupported protocol version",data:{supported:SUPPORTED_PROTOCOLS}}},400);
+  }
+  if(modern&&body?.method==="initialize")return json({jsonrpc:"2.0",id:body?.id??null,error:{code:-32601,message:"initialize is not part of protocol 2026-07-28; send the request metadata headers"}},404);
   const out=await rpc(env,body);
   if(!out)return new Response(null,{status:202,headers:CORS});
+  if(modern&&out.error?.code===-32601)return json(out,404);
   return json(out,200);
  }
 };
