@@ -131,7 +131,7 @@ Do not assume a custom MCP connection is available on every ChatGPT plan. Verify
 
 ## 9. Acceptance gates
 
-1. Inspect the real SPARK platform Codex implementation and record its transport and permissions.
+1. Inspect the real SPARK platform Codex implementation and record its transport and permissions. **Source inspection completed for the uploaded SPARK ONE V1.0.2 package; see Section 10.**
 2. Inspect the actual FreeLAMP installation/configuration and identify supported local control surfaces.
 3. Confirm no SPARK data or source is copied into the HORUS repository.
 4. Build the adapter as a separate local companion, reusing the existing Codex runtime/sign-in where safe.
@@ -145,12 +145,31 @@ Do not assume a custom MCP connection is available on every ChatGPT plan. Verify
 12. Verify logs redact secrets and record task ID, project ID, permission profile, timestamps, changed files, and test results.
 13. Separately verify whether ChatGPT can call the adapter in the user's current plan/client.
 
-## 10. Current evidence state
+## 10. SPARK ONE V1.0.2 source audit (uploaded package)
+
+The uploaded archive contains SPARK ONE V1.0.2 and workshop platform source V1.3.64. The actual Codex integration is `workshop_platform/codex_client.py`:
+- It launches the installed Codex CLI with `app-server` through a local Qt `QProcess`; JSON-RPC messages are exchanged over the process stdin/stdout.
+- It resolves the Codex executable from `SPARK_CODEX_BIN`, known Windows install paths, or PATH; it checks `codex --version` and `codex login status`.
+- New threads are started with `sandbox=read-only`, `approvalPolicy=on-request`, and `cwd` set to the platform application directory. Existing thread IDs are stored in a local JSON state file.
+- The client prompts the user before accepting command-execution approval requests. The code comments and system instructions state that file-change/elevation approvals are not granted. This is an embedded UI approval flow, not a safe external-client API.
+- The code supplies Codex with a live context snapshot from `workshop_summary()`, `search_orders('', limit=10)`, and `approved_workshop_memory(limit=50)`. This can include customer names and phone numbers from recent orders. Therefore, despite older V1.3.1 release notes saying customer/order data is not automatically sent, the inspected V1.3.64 source does attach recent-order context to each Codex message. Review/minimize/redact this context before extending access to HORUS.
+- The archive's SPARK ONE documentation says workshop and accounts databases are separate, fresh data stores under `%LOCALAPPDATA%\\SPARK ONE`; it does not establish a FreeLAMP dependency.
+
+Verification performed against the extracted uploaded archive:
+- Focused Codex source tests: 13 passed.
+- Full packaged test suite: 121 passed.
+- These are source-level tests in this environment. They do not prove Windows GUI behavior, a live Codex login, real App Server connectivity, or FreeLAMP integration.
+
+Key integration conclusion: HORUS should not connect as a second client to SPARK's existing QProcess/session without a deliberate supported interface. Prefer a separate narrow local adapter that starts its own bounded Codex App Server process, reuses the user's installed CLI/sign-in without copying credentials, and has an explicit project-root and permission allowlist. Do not add an external client to SPARK's current thread/session by sharing its thread ID alone.
+
+## 11. Current evidence state
 
 | Capability | State |
 |---|---|
-| Codex exists in the user's SPARK workshop platform | User-confirmed; implementation not inspected here |
-| FreeLAMP is available to the user | User-confirmed; installation/configuration not inspected here |
+| Codex exists in the user's SPARK workshop platform | Source-verified in uploaded SPARK ONE V1.0.2 package |
+| Codex transport and read-only policy | Source-verified; live Windows behavior not tested |
+| SPARK forwards recent-order and approved-memory context to Codex | Source-verified; includes potentially identifying customer fields |
+| FreeLAMP is available to the user | User-confirmed; not present or configured in uploaded package |
 | Official App Server / SDK integration approach | Documented by OpenAI |
 | HORUS orchestration and evidence skills | Present in private HORUS plugin v1.1.0 |
 | HORUS MCP source and CI tests | Present; CI-tested |
@@ -159,7 +178,7 @@ Do not assume a custom MCP connection is available on every ChatGPT plan. Verify
 | SPARK-to-HORUS bridge | Not connected or verified |
 | Codex callable from this ChatGPT conversation | Not established |
 
-## 11. Non-goals
+## 12. Non-goals
 
 - Do not redesign or rebuild SPARK's Codex integration.
 - Do not merge SPARK and HORUS repositories or memory stores.
