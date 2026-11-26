@@ -9,7 +9,7 @@ Cloudflare Worker endpoint for the HORUS capability, task, and evidence tools.
 - Health endpoint: `https://horus-mcp-tools.zeerocoold0007.workers.dev/health`
 - Storage: Cloudflare D1 binding `DB`, database `horus-memory`
 - Authentication: `Authorization: Bearer <HORUS_API_TOKEN>`
-- MCP protocol versions: `2025-03-26` and `2025-11-25`
+- MCP protocol versions: `2026-07-28` (current request-metadata transport) plus legacy compatibility for `2025-03-26` and `2025-11-25`
 - Tools: capability upsert/list, task upsert/get, evidence append/list
 
 ## Cloudflare configuration
