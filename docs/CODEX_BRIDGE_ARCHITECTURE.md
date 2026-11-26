@@ -216,3 +216,20 @@ The apply operation is a separate explicit user command and is not triggered by 
 Local tests currently cover successful modification with backup, file creation, traversal rejection, deletion rejection, context mismatch, and duplicate target rejection. These tests do not establish a live Codex App Server session on the user's Windows device.
 
 This design intentionally does not grant Codex unrestricted write access. It provides a reviewable diff and a separate approval-controlled application step.
+
+
+## 13. V1.3.2 implementation evidence (2026-11-26)
+
+Implemented locally in HORUS AUTONOMOUS AGENT V1.3.2:
+- `horus_autonomy/patching.py`: strict unified-diff parser and application engine.
+- `codex-propose`: asks Codex for a unified diff while the Codex App Server remains in read-only mode; validates and stores the proposal without changing workspace files.
+- `patch-show`: displays the stored proposal for review.
+- `patch-apply --confirm`: separate explicit apply action, with backups for modified files and audit entry.
+- Windows menu launcher includes Codex status, proposal, review, and apply actions.
+
+Local verification:
+- 29 unit tests passed.
+- Additional CLI integration smoke test verified that applying without `--confirm` is blocked, applying with explicit confirmation changes the intended file, and the proposal state is marked applied.
+- These checks ran in the development container. The live Codex App Server exchange and Windows machine execution still require local verification.
+
+Supported patch scope is intentionally limited to UTF-8 text file creation/modification. Deletion, rename, binary patches, absolute/traversal paths, symlinks, duplicate targets, and context mismatches are rejected. All patch sections are validated before the first write.
