@@ -170,11 +170,11 @@ A runnable, standard-library-only supervised worker package was built separately
 - CLI for submit, serve, status, list, approve, cancel, human takeover, and resume.
 - Explicit trusted-handler registry; proposed dynamic tools remain non-executable.
 - Approval gate for sensitive, external-write, and destructive risk classes.
-- Human takeover pause, bounded read-only workspace listing, and hash-chained audit records.
+- Persisted human takeover control across separate CLI invocations, bounded read-only workspace listing, and hash-chained audit records.
 - No paid API, network listener, arbitrary shell, or arbitrary code execution.
 
 Verification:
-- V1.1 core tests plus V1.2 worker tests: 17 passed.
+- V1.1 core tests plus V1.2 worker tests: 18 passed, including cross-process persistent human takeover.
 - CLI smoke test: task submitted, processed to completed, returned expected result, and audit integrity verified.
 - This proves the local reference worker package in this execution environment. It does not prove deployment on the user's Windows PC or integration with HORUS MEMORY, Codex App Server, FreeLAMP, or ChatGPT connectors.
 
@@ -189,7 +189,7 @@ Package artifact: `HORUS_AUTONOMOUS_AGENT_V1.2.zip` (delivered in the current co
 | SPARK forwards recent-order and approved-memory context to Codex | Source-verified; includes potentially identifying customer fields |
 | FreeLAMP is available to the user | User-confirmed; not present or configured in uploaded package |
 | HORUS V1.1 autonomy core | Implemented and unit-tested as isolated reference package |
-| HORUS V1.2 persistent worker and CLI | Implemented; 17 tests and CLI smoke test passed in this environment |
+| HORUS V1.2 persistent worker and CLI | Implemented; 18 tests, compile check, and CLI smoke test passed in this environment |
 | HORUS V1.2 deployed on user's Windows PC | Not yet verified |
 | HORUS MEMORY / VIRTUAL OFFICE integration | Not implemented |
 | HORUS Codex adapter | Not implemented |
