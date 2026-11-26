@@ -1,0 +1,12 @@
+{
+  "name": "horus-mcp-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/index.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "wrangler": "^4.46.0"
+  }
+}
